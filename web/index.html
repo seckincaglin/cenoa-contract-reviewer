@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Contract Reviewer | Cenoa</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            color: #333;
+            background: #fafafa;
+            transition: all 0.2s;
+            resize: vertical;
+            min-height: 300px;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        .counter {
+            text-align: right;
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Results */
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .risk-score {
+            text-align: center;
+            padding: 24px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #fff5f5 100%);
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .risk-label {
+            font-size: 13px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .risk-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .risk-value.low { color: #10b981; }
+        .risk-value.medium { color: #f59e0b; }
+        .risk-value.high { color: #ef4444; }
+
+        .risk-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            font-size: 20px;
+        }
+
+        .issue-list {
+            list-style: none;
+        }
+
+        .issue-item {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .issue-item.critical {
+            background: #fee;
+            border-left: 4px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .issue-item.warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            color: #92400e;
+        }
+
+        .issue-item.good {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+        }
+
+        .issue-item.info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            color: #1e40af;
+        }
+
+        .back-btn {
+            background: #6b7280;
+            margin-top: 20px;
+        }
+
+        .powered-by {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .powered-by a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .disclaimer {
+            background: #fef3c7;
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 4px solid #f59e0b;
+            margin-top: 24px;
+            font-size: 13px;
+            color: #92400e;
+            line-height: 1.6;
+        }
+
+        .disclaimer strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">
+                <span class="logo-text">📋 Cenoa</span>
+            </div>
+            <h1>AI Contract Reviewer</h1>
+            <p class="subtitle">Get instant insights on your freelance contracts</p>
+
+            <!-- Input Form -->
+            <div id="input-form">
+                <div class="form-group">
+                    <label for="contract-text">Paste your contract text below:</label>
+                    <textarea 
+                        id="contract-text" 
+                        placeholder="Paste your contract here... (include all sections: payment terms, scope, deadlines, IP rights, etc.)"
+                    ></textarea>
+                    <div class="counter">
+                        <span id="char-count">0</span> characters
+                    </div>
+                </div>
+
+                <button id="analyze-btn" onclick="analyzeContract()">
+                    🔍 Analyze Contract
+                </button>
+
+                <div class="disclaimer">
+                    <strong>⚠️ Important Disclaimer</strong>
+                    This tool provides general guidance only and does not constitute legal advice. 
+                    Always consult with a qualified attorney before signing any contract.
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Analyzing your contract...</p>
+                <p style="font-size: 13px; color: #999; margin-top: 8px;">This may take 10-20 seconds</p>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="results">
+                <div class="risk-score">
+                    <div class="risk-label">Overall Risk Score</div>
+                    <div class="risk-value" id="risk-score">-</div>
+                    <div class="risk-text" id="risk-text">-</div>
+                </div>
+
+                <div class="section" id="critical-section" style="display: none;">
+                    <div class="section-title">
+                        <span class="section-icon">🚨</span>
+                        Critical Issues
+                    </div>
+                    <ul class="issue-list" id="critical-list"></ul>
+                </div>
+
+                <div class="section" id="warning-section" style="display: none;">
+                    <div class="section-title">
+                        <span class="section-icon">⚠️</span>
+                        Warning Signs
+                    </div>
+                    <ul class="issue-list" id="warning-list"></ul>
+                </div>
+
+                <div class="section" id="good-section" style="display: none;">
+                    <div class="section-title">
+                        <span class="section-icon">✅</span>
+                        Good Terms Found
+                    </div>
+                    <ul class="issue-list" id="good-list"></ul>
+                </div>
+
+                <div class="section" id="missing-section" style="display: none;">
+                    <div class="section-title">
+                        <span class="section-icon">💡</span>
+                        Missing or Unclear Clauses
+                    </div>
+                    <ul class="issue-list" id="missing-list"></ul>
+                </div>
+
+                <button class="back-btn" onclick="resetForm()">
+                    ← Analyze Another Contract
+                </button>
+            </div>
+        </div>
+
+        <div class="powered-by">
+            Powered by <a href="https://cenoa.com" target="_blank">Cenoa</a> · Protecting freelancers worldwide 🌍
+        </div>
+    </div>
+
+    <script>
+        // Character counter
+        const textarea = document.getElementById('contract-text');
+        const charCount = document.getElementById('char-count');
+        const analyzeBtn = document.getElementById('analyze-btn');
+
+        textarea.addEventListener('input', () => {
+            const count = textarea.value.length;
+            charCount.textContent = count.toLocaleString();
+            analyzeBtn.disabled = count < 100;
+        });
+
+        async function analyzeContract() {
+            const contractText = textarea.value.trim();
+            
+            if (contractText.length < 100) {
+                alert('Please paste a contract with at least 100 characters.');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('input-form').style.display = 'none';
+            document.getElementById('loading').classList.add('show');
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ contract: contractText })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Sorry, there was an error analyzing your contract. Please try again.');
+                resetForm();
+            }
+        }
+
+        function displayResults(data) {
+            // Hide loading
+            document.getElementById('loading').classList.remove('show');
+
+            // Show results
+            document.getElementById('results').classList.add('show');
+
+            // Risk score
+            const riskScore = document.getElementById('risk-score');
+            const riskText = document.getElementById('risk-text');
+            
+            riskScore.textContent = data.risk_score + '/10';
+            riskText.textContent = data.risk_level;
+
+            if (data.risk_score <= 3) {
+                riskScore.classList.add('low');
+            } else if (data.risk_score <= 6) {
+                riskScore.classList.add('medium');
+            } else {
+                riskScore.classList.add('high');
+            }
+
+            // Populate lists
+            populateList('critical', data.critical_issues || []);
+            populateList('warning', data.warnings || []);
+            populateList('good', data.good_terms || []);
+            populateList('missing', data.missing_clauses || []);
+        }
+
+        function populateList(type, items) {
+            const section = document.getElementById(`${type}-section`);
+            const list = document.getElementById(`${type}-list`);
+            
+            list.innerHTML = '';
+            
+            if (items.length > 0) {
+                section.style.display = 'block';
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = `issue-item ${type === 'warning' ? 'warning' : type}`;
+                    li.textContent = item;
+                    list.appendChild(li);
+                });
+            } else {
+                section.style.display = 'none';
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('results').classList.remove('show');
+            document.getElementById('loading').classList.remove('show');
+            document.getElementById('input-form').style.display = 'block';
+            textarea.value = '';
+            charCount.textContent = '0';
+            analyzeBtn.disabled = true;
+        }
+
+        // Initialize
+        analyzeBtn.disabled = true;
+    </script>
+</body>
+</html>

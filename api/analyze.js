@@ -1,5 +1,5 @@
 // Vercel Serverless Function for Contract Analysis
-// Uses Anthropic Claude Sonnet for cost-effective analysis
+// Uses Google Gemini 2.0 Flash (free tier: 15 RPM, 1M tokens/day)
 
 export default async function handler(req, res) {
   // CORS headers
@@ -22,10 +22,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Contract text is required (min 100 characters)' });
     }
 
-    // Call Anthropic API
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY not configured');
+      throw new Error('GOOGLE_AI_API_KEY not configured');
     }
 
     const prompt = `You are an expert contract reviewer specializing in freelance and remote work agreements. Analyze the following contract and provide a structured assessment.
@@ -65,31 +64,40 @@ Provide your analysis in the following JSON format (respond ONLY with valid JSON
 
 Be specific and actionable. Focus on freelancer/remote worker protection.`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 2000,
-        messages: [{
-          role: 'user',
-          content: prompt
-        }]
-      })
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2000,
+            responseMimeType: 'application/json'
+          }
+        })
+      }
+    );
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('Anthropic API error:', error);
+      console.error('Gemini API error:', error);
       throw new Error('AI analysis failed');
     }
 
     const data = await response.json();
-    const analysisText = data.content[0].text;
+    const analysisText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!analysisText) {
+      throw new Error('No response from AI');
+    }
 
     // Parse JSON from response
     const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
